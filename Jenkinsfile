@@ -26,15 +26,53 @@ pipeline {
     post {
 
         success {
-            echo 'Build Successful'
+            script {
+                def developerEmail = sh(
+                    script: "git log -1 --pretty=format:%ae",
+                    returnStdout: true
+                ).trim()
+
+                emailext(
+                    subject: "Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """
+Hello,
+
+Your commit build completed successfully.
+
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_NUMBER}
+URL: ${env.BUILD_URL}
+""",
+                    to: developerEmail
+                )
+            }
         }
 
         failure {
-            emailext(
-                subject: "Build Failed",
-                body: "Please check the Jenkins build.",
-                recipientProviders: [developers()]
-            )
+            script {
+                def developerEmail = sh(
+                    script: "git log -1 --pretty=format:%ae",
+                    returnStdout: true
+                ).trim()
+
+                echo "Sending email to: ${developerEmail}"
+
+                emailext(
+                    subject: "Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    body: """
+Hello,
+
+Your commit caused the Jenkins build failure.
+
+Job: ${env.JOB_NAME}
+Build: ${env.BUILD_NUMBER}
+URL: ${env.BUILD_URL}
+
+Please check the Jenkins console output.
+""",
+                    to: developerEmail
+                )
+            }
         }
 
     }
